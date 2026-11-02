@@ -1,0 +1,10 @@
+# YOLO Dataset configuration file for Hard Hat and Safety Helmet detection
+path: ../data/processed
+train: train/images
+val: val/images
+
+# Class names
+names:
+  0: helmet
+  1: no_helmet
+  2: person

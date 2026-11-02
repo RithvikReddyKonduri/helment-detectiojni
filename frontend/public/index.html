@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Industrial Safety AI - Helmet Detection Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: #111827;
+      --border: #1f2937;
+      --text-main: #f9fafb;
+      --text-muted: #9ca3af;
+      --primary: #3b82f6;
+      --safe: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .badge {
+      padding: 0.25rem 0.6rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .badge-live {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--safe);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+    main {
+      flex: 1;
+      padding: 2rem;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1.5rem;
+    }
+    @media (max-width: 1024px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+    .panel {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    }
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.75rem;
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: var(--primary);
+      color: white;
+    }
+    .viewport-box {
+      position: relative;
+      width: 100%;
+      min-height: 440px;
+      background: #030712;
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border: 2px dashed var(--border);
+    }
+    #previewImg, #videoElement {
+      max-width: 100%;
+      max-height: 520px;
+      display: block;
+      border-radius: 6px;
+    }
+    #overlayCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    .dropzone-label {
+      color: var(--text-muted);
+      cursor: pointer;
+      text-align: center;
+    }
+    .dropzone-label span {
+      color: var(--primary);
+      font-weight: 600;
+    }
+    .controls-row {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .action-btn {
+      flex: 1;
+      padding: 0.75rem;
+      border-radius: 8px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      background: var(--primary);
+      color: white;
+      transition: opacity 0.2s;
+    }
+    .action-btn:hover {
+      opacity: 0.9;
+    }
+    .action-btn.secondary {
+      background: #374151;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .stat-card {
+      background: #1f2937;
+      padding: 1.25rem;
+      border-radius: 8px;
+      border-left: 4px solid var(--primary);
+    }
+    .stat-card.safe { border-left-color: var(--safe); }
+    .stat-card.danger { border-left-color: var(--danger); }
+    .stat-title {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 0.25rem;
+    }
+    .stat-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+    }
+    .compliance-banner {
+      padding: 1rem;
+      border-radius: 8px;
+      text-align: center;
+      font-weight: 600;
+      margin-top: 1rem;
+    }
+    .compliance-safe {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid var(--safe);
+      color: var(--safe);
+    }
+    .compliance-danger {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid var(--danger);
+      color: var(--danger);
+    }
+    .detections-list {
+      margin-top: 1rem;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .detection-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      background: #1f2937;
+      margin-bottom: 0.5rem;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo-area">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><path d="M12 2a5 5 0 0 0-5 5v2a5 5 0 0 0 10 0V7a5 5 0 0 0-5-5z"></path><path d="M4 14v1a7 7 0 0 0 14 0v-1"></path><path d="M9 22h6"></path></svg>
+      <div>
+        <h1 style="font-size: 1.15rem; font-weight: 700;">SafeSight AI - Industrial Safety Monitor</h1>
+        <p style="font-size: 0.75rem; color: var(--text-muted);">Real-time OSHA Compliance & Helmet Detection</p>
+      </div>
+    </div>
+    <div class="badge badge-live">System Active</div>
+  </header>
+
+  <main>
+    <!-- Left Column: Video & Image Viewport -->
+    <div class="panel">
+      <div class="tabs">
+        <button id="tabUpload" class="tab-btn active" onclick="switchMode('upload')">Image Inspection</button>
+        <button id="tabWebcam" class="tab-btn" onclick="switchMode('webcam')">Live CCTV / Camera Feed</button>
+      </div>
+
+      <div class="viewport-box" id="viewportBox">
+        <canvas id="overlayCanvas"></canvas>
+        <img id="previewImg" style="display: none;" alt="Preview" />
+        <video id="videoElement" autoplay playsinline style="display: none;"></video>
+        <label for="fileInput" class="dropzone-label" id="dropLabel">
+          <svg style="margin: 0 auto 0.75rem; display: block;" width="40" height="40" fill="none" stroke="#9ca3af" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          <p>Click to <span>upload inspection image</span> or drag it here</p>
+          <p style="font-size: 0.75rem; margin-top: 0.25rem;">Supports JPG, PNG, WEBP</p>
+        </label>
+        <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleFileSelected(event)" />
+      </div>
+
+      <div class="controls-row">
+        <button class="action-btn" id="analyzeBtn" onclick="runInspection()">Scan for Compliance</button>
+        <button class="action-btn secondary" onclick="resetView()">Reset</button>
+      </div>
+    </div>
+
+    <!-- Right Column: Safety Telemetry & Compliance Stats -->
+    <div class="panel">
+      <h2 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem;">Site Safety Telemetry</h2>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-title">Workers Inspected</div>
+          <div class="stat-value" id="valTotal">0</div>
+        </div>
+        <div class="stat-card safe">
+          <div class="stat-title">Helmets Compliant</div>
+          <div class="stat-value" id="valCompliant" style="color: var(--safe);">0</div>
+        </div>
+        <div class="stat-card danger">
+          <div class="stat-title">Safety Violations</div>
+          <div class="stat-value" id="valViolations" style="color: var(--danger);">0</div>
+        </div>
+      </div>
+
+      <div id="complianceBanner" class="compliance-banner compliance-safe">
+        Status: Awaiting Scan
+      </div>
+
+      <h3 style="font-size: 0.85rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem;">Detected Personnel Log</h3>
+      <div class="detections-list" id="detectionsList">
+        <p style="font-size: 0.8rem; color: var(--text-muted); text-align: center; margin-top: 1rem;">No detections yet.</p>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    let currentMode = 'upload';
+    let currentImageFile = null;
+    let webcamStream = null;
+
+    function switchMode(mode) {
+      currentMode = mode;
+      document.getElementById('tabUpload').classList.toggle('active', mode === 'upload');
+      document.getElementById('tabWebcam').classList.toggle('active', mode === 'webcam');
+
+      const video = document.getElementById('videoElement');
+      const img = document.getElementById('previewImg');
+      const dropLabel = document.getElementById('dropLabel');
+
+      if (mode === 'webcam') {
+        img.style.display = 'none';
+        dropLabel.style.display = 'none';
+        video.style.display = 'block';
+        startWebcam();
+      } else {
+        stopWebcam();
+        video.style.display = 'none';
+        if (currentImageFile) {
+          img.style.display = 'block';
+          dropLabel.style.display = 'none';
+        } else {
+          img.style.display = 'none';
+          dropLabel.style.display = 'block';
+        }
+      }
+      clearCanvas();
+    }
+
+    async function startWebcam() {
+      try {
+        webcamStream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+        document.getElementById('videoElement').srcObject = webcamStream;
+      } catch (err) {
+        alert("Camera permission denied or camera not found: " + err.message);
+      }
+    }
+
+    function stopWebcam() {
+      if (webcamStream) {
+        webcamStream.getTracks().forEach(track => track.stop());
+        webcamStream = null;
+      }
+    }
+
+    function handleFileSelected(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      currentImageFile = file;
+
+      const img = document.getElementById('previewImg');
+      img.src = URL.createObjectURL(file);
+      img.style.display = 'block';
+      document.getElementById('dropLabel').style.display = 'none';
+      clearCanvas();
+    }
+
+    async function runInspection() {
+      let blobToSend = null;
+
+      if (currentMode === 'upload') {
+        if (!currentImageFile) {
+          alert("Please upload an image first.");
+          return;
+        }
+        blobToSend = currentImageFile;
+      } else {
+        // Capture frame from webcam
+        const video = document.getElementById('videoElement');
+        if (!video.videoWidth) {
+          alert("Waiting for camera stream...");
+          return;
+        }
+        const snapCanvas = document.createElement('canvas');
+        snapCanvas.width = video.videoWidth;
+        snapCanvas.height = video.videoHeight;
+        const ctx = snapCanvas.getContext('2d');
+        ctx.drawImage(video, 0, 0);
+        blobToSend = await new Promise(resolve => snapCanvas.toBlob(resolve, 'image/jpeg'));
+      }
+
+      const formData = new FormData();
+      formData.append("file", blobToSend, "frame.jpg");
+
+      try {
+        const res = await fetch("/api/v1/detect", {
+          method: "POST",
+          body: formData
+        });
+        const data = await res.json();
+        updateDashboard(data);
+      } catch (err) {
+        console.error("Inference error:", err);
+        alert("API connection failed. Make sure the server is running.");
+      }
+    }
+
+    function updateDashboard(data) {
+      document.getElementById('valTotal').innerText = data.total_detected;
+      document.getElementById('valCompliant').innerText = data.compliant_count;
+      document.getElementById('valViolations').innerText = data.violation_count;
+
+      const banner = document.getElementById('complianceBanner');
+      if (data.is_fully_compliant) {
+        banner.className = "compliance-banner compliance-safe";
+        banner.innerText = "✓ 100% OSHA Compliant: All Workers Safe";
+      } else {
+        banner.className = "compliance-banner compliance-danger";
+        banner.innerText = `⚠ Safety Alert: ${data.violation_count} Helmet Violation(s) Detected`;
+      }
+
+      // Populate list
+      const list = document.getElementById('detectionsList');
+      list.innerHTML = "";
+      data.detections.forEach((d, idx) => {
+        const item = document.createElement('div');
+        item.className = "detection-item";
+        item.innerHTML = `
+          <span>Worker #${idx + 1}: <strong>${d.label.toUpperCase()}</strong></span>
+          <span style="color: ${d.color}; font-weight: 600;">${Math.round(d.confidence * 100)}% (${d.status})</span>
+        `;
+        list.appendChild(item);
+      });
+
+      // Draw bounding boxes on canvas
+      drawBoxes(data.detections);
+    }
+
+    function drawBoxes(detections) {
+      const canvas = document.getElementById('overlayCanvas');
+      const box = document.getElementById('viewportBox');
+      canvas.width = box.clientWidth;
+      canvas.height = box.clientHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      detections.forEach(d => {
+        const x = d.x1 * canvas.width;
+        const y = d.y1 * canvas.height;
+        const w = (d.x2 - d.x1) * canvas.width;
+        const h = (d.y2 - d.y1) * canvas.height;
+
+        ctx.strokeStyle = d.color;
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x, y, w, h);
+
+        ctx.fillStyle = d.color;
+        ctx.fillRect(x, y - 24, ctx.measureText(d.label).width + 50, 24);
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 12px Inter";
+        ctx.fillText(`${d.label} ${Math.round(d.confidence * 100)}%`, x + 6, y - 7);
+      });
+    }
+
+    function clearCanvas() {
+      const canvas = document.getElementById('overlayCanvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function resetView() {
+      clearCanvas();
+      currentImageFile = null;
+      document.getElementById('previewImg').style.display = 'none';
+      document.getElementById('dropLabel').style.display = 'block';
+      document.getElementById('fileInput').value = "";
+      document.getElementById('valTotal').innerText = "0";
+      document.getElementById('valCompliant').innerText = "0";
+      document.getElementById('valViolations').innerText = "0";
+      const banner = document.getElementById('complianceBanner');
+      banner.className = "compliance-banner compliance-safe";
+      banner.innerText = "Status: Awaiting Scan";
+      document.getElementById('detectionsList').innerHTML = '<p style="font-size: 0.8rem; color: var(--text-muted); text-align: center; margin-top: 1rem;">No detections yet.</p>';
+    }
+  </script>
+</body>
+</html>

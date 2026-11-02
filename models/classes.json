@@ -1,0 +1,17 @@
+{
+  "0": {
+    "name": "helmet",
+    "status": "Safe",
+    "color": "#10B981"
+  },
+  "1": {
+    "name": "no_helmet",
+    "status": "Danger",
+    "color": "#EF4444"
+  },
+  "2": {
+    "name": "person",
+    "status": "Neutral",
+    "color": "#3B82F6"
+  }
+}
